@@ -1,9 +1,9 @@
 spring:
-  datasource:
-    url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=XEPDB1))(CONNECT_TIMEOUT=120)(RETRY_COUNT=20)(RETRY_DELAY=5))
-    driver-class-name: oracle.jdbc.OracleDriver
-    username: THANHTEST
-    password: thanh123
+#  datasource:
+#    url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=XEPDB1))(CONNECT_TIMEOUT=120)(RETRY_COUNT=20)(RETRY_DELAY=5))
+#    driver-class-name: oracle.jdbc.OracleDriver
+#    username: THANHTEST
+#    password: thanh123
   jpa:
     hibernate:
       ddl-auto: update
@@ -27,7 +27,7 @@ jwt:
   expiration: 86400000  # 24 hours
 
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 logging:
   level:
