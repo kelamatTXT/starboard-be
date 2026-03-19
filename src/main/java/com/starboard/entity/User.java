@@ -7,7 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "ADMIN_USERS")
+@Table(name = "admin_users")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,7 +31,7 @@ public class User {
 
     private String avatarUrl;
 
-    @Column(columnDefinition = "CLOB")
+    @Column(columnDefinition = "TEXT")
     private String accessToken;
 
     @Builder.Default

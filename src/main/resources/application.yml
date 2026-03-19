@@ -1,16 +1,19 @@
 spring:
-#  datasource:
-#    url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=XEPDB1))(CONNECT_TIMEOUT=120)(RETRY_COUNT=20)(RETRY_DELAY=5))
-#    driver-class-name: oracle.jdbc.OracleDriver
-#    username: THANHTEST
-#    password: thanh123
+  datasource:
+    url: jdbc:postgresql://ep-quiet-salad-ac3it7xy-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    driver-class-name: org.postgresql.Driver
+    username: neondb_owner
+    password: npg_0ZIl8JtFoDCW
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 5
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.OracleDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
   jackson:
     default-property-inclusion: NON_NULL

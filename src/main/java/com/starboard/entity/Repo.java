@@ -28,7 +28,7 @@ public class Repo {
     @Column(unique = true, nullable = false)
     private String fullName;
 
-    @Column(columnDefinition = "CLOB")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     private String language;
