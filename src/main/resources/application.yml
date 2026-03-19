@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:postgresql://ep-quiet-salad-ac3it7xy-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    url: ${DATABASE_URL:jdbc:postgresql://ep-quiet-salad-ac3it7xy-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require}
     driver-class-name: org.postgresql.Driver
-    username: neondb_owner
-    password: npg_0ZIl8JtFoDCW
+    username: ${DB_USERNAME:neondb_owner}
+    password: ${DB_PASSWORD:npg_0ZIl8JtFoDCW}
     hikari:
       connection-timeout: 20000
       maximum-pool-size: 5
@@ -20,14 +20,17 @@ spring:
 
 github:
   oauth:
-    client-id: Ov23li05V5giSd6gdMiE
-    client-secret: 914135f2759808d961412c1c938718f026b4e48a
-    redirect-uri: http://localhost:8080/api/auth/github/callback
+    client-id: ${GITHUB_CLIENT_ID:Ov23li05V5giSd6gdMiE}
+    client-secret: ${GITHUB_CLIENT_SECRET:914135f2759808d961412c1c938718f026b4e48a}
+    redirect-uri: ${BACKEND_URL:https://starboard-be.onrender.com}/api/auth/github/callback
     scope: user:email,repo
 
 jwt:
-  secret: starboard_jwt_super_secret_key_minimum_256_bits_long_secure_key_2024
+  secret: ${JWT_SECRET:starboard_jwt_super_secret_key_minimum_256_bits_long_secure_key_2024}
   expiration: 86400000  # 24 hours
+
+frontend:
+  url: ${FRONTEND_URL:https://buff-startgit.vercel.app}
 
 server:
   port: ${PORT:8080}
@@ -38,9 +41,6 @@ logging:
     org.springframework.security: INFO
 
 # Star verification job
-# Mặc định: chạy mỗi giờ (0 0 * * * *)
-# Ví dụ 5 phút: 0 */5 * * * *
-# Ví dụ mỗi ngày lúc 3h sáng: 0 0 3 * * *
 star:
   verify:
     cron: "*/5 * * * * *"
