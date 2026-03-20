@@ -68,6 +68,16 @@ public class StarVerificationJob {
         int updated = userRepository.deductCredit(starer.getId());
         log.info("  -> deductCredit user={} id={}, rows updated={}", starer.getLogin(), starer.getId(), updated);
 
+        // Tit-for-Tat: hoàn trả +1 credit cho owner repo (nếu có trong hệ thống)
+        if (repo.getOwner() != null) {
+            userRepository.findByLogin(repo.getOwner()).ifPresent(owner -> {
+                int prev = owner.getCredits() != null ? owner.getCredits() : 0;
+                owner.setCredits(prev + 1);
+                userRepository.save(owner);
+                log.info("  -> refundCredit owner={}, credits: {} -> {}", owner.getLogin(), prev, owner.getCredits());
+            });
+        }
+
         // Xóa star record
         starRecordRepository.delete(record);
         log.info("  -> Đã xóa star_record id={}", record.getId());

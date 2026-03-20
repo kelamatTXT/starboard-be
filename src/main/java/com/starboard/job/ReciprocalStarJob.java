@@ -91,12 +91,17 @@ public class ReciprocalStarJob {
                     // Rollback credit: trừ credit của người star
                     userRepository.deductCredit(starer.getId());
 
+                    // Tit-for-Tat: hoàn trả +1 credit cho owner repo
+                    int ownerPrev = repoOwner.getCredits() != null ? repoOwner.getCredits() : 0;
+                    repoOwner.setCredits(ownerPrev + 1);
+                    userRepository.save(repoOwner);
+
                     // Xóa star record
                     starRecordRepository.delete(record);
 
                     unstarredCount++;
-                    log.info("  → Đã auto-unstar & rollback credit cho user={}, repo={}",
-                            starer.getLogin(), repo.getFullName());
+                    log.info("  → Đã auto-unstar & rollback credit cho user={}, repo={}, owner refund={}->{}",
+                            starer.getLogin(), repo.getFullName(), ownerPrev, repoOwner.getCredits());
                 } catch (Exception e) {
                     log.error("  → Lỗi khi auto-unstar {}/{} cho user {}: {}",
                             repo.getOwner(), repo.getName(), starer.getLogin(), e.getMessage());

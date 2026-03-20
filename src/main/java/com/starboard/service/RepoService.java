@@ -94,6 +94,17 @@ public class RepoService {
             throw new RuntimeException("Bạn đã star repo này rồi");
         }
 
+        // Tit-for-Tat: kiểm tra credit owner (nếu owner có trong hệ thống)
+        Optional<User> ownerOpt = repo.getOwner() != null
+                ? userRepository.findByLogin(repo.getOwner()) : Optional.empty();
+        if (ownerOpt.isPresent()) {
+            User owner = ownerOpt.get();
+            int ownerCredits = owner.getCredits() != null ? owner.getCredits() : 0;
+            if (ownerCredits <= 0) {
+                throw new RuntimeException("Owner repo đã hết credit, không thể nhận thêm star");
+            }
+        }
+
         githubService.starRepo(repo.getOwner(), repo.getName(), currentUser.getAccessToken());
 
         StarRecord record = StarRecord.builder()
@@ -102,10 +113,21 @@ public class RepoService {
                 .build();
         starRecordRepository.save(record);
 
+        // Tit-for-Tat: starer +1 credit
         int prevCredits = currentUser.getCredits() != null ? currentUser.getCredits() : 0;
         currentUser.setCredits(prevCredits + 1);
         userRepository.save(currentUser);
         log.info("Starer {} credits: {} -> {}", currentUser.getLogin(), prevCredits, currentUser.getCredits());
+
+        // Tit-for-Tat: owner -1 credit (nếu owner có trong hệ thống)
+        if (ownerOpt.isPresent()) {
+            User owner = ownerOpt.get();
+            int ownerPrev = owner.getCredits() != null ? owner.getCredits() : 0;
+            owner.setCredits(Math.max(0, ownerPrev - 1));
+            userRepository.save(owner);
+            log.info("Owner {} credits: {} -> {} (repo {} được star)",
+                    owner.getLogin(), ownerPrev, owner.getCredits(), repo.getFullName());
+        }
 
         return toDto(repo, currentUser);
     }
@@ -122,10 +144,23 @@ public class RepoService {
 
         starRecordRepository.delete(record);
 
+        // Tit-for-Tat: starer -1 credit
         int prevCredits = currentUser.getCredits() != null ? currentUser.getCredits() : 0;
         currentUser.setCredits(Math.max(0, prevCredits - 1));
         userRepository.save(currentUser);
         log.info("Unstarer {} credits: {} -> {}", currentUser.getLogin(), prevCredits, currentUser.getCredits());
+
+        // Tit-for-Tat: owner +1 credit (hoàn trả vì mất star)
+        Optional<User> ownerOpt = repo.getOwner() != null
+                ? userRepository.findByLogin(repo.getOwner()) : Optional.empty();
+        if (ownerOpt.isPresent()) {
+            User owner = ownerOpt.get();
+            int ownerPrev = owner.getCredits() != null ? owner.getCredits() : 0;
+            owner.setCredits(ownerPrev + 1);
+            userRepository.save(owner);
+            log.info("Owner {} credits: {} -> {} (repo {} bị unstar, hoàn trả)",
+                    owner.getLogin(), ownerPrev, owner.getCredits(), repo.getFullName());
+        }
 
         return toDto(repo, currentUser);
     }
@@ -150,9 +185,27 @@ public class RepoService {
                 skipped++;
                 continue;
             }
+
+            // Tit-for-Tat: kiểm tra credit owner
+            Optional<User> ownerOpt = repo.getOwner() != null
+                    ? userRepository.findByLogin(repo.getOwner()) : Optional.empty();
+            if (ownerOpt.isPresent() && (ownerOpt.get().getCredits() == null || ownerOpt.get().getCredits() <= 0)) {
+                skipped++;
+                continue;
+            }
+
             try {
                 githubService.starRepo(repo.getOwner(), repo.getName(), currentUser.getAccessToken());
                 starRecordRepository.save(StarRecord.builder().user(currentUser).repo(repo).build());
+
+                // Tit-for-Tat: owner -1 credit
+                if (ownerOpt.isPresent()) {
+                    User owner = ownerOpt.get();
+                    int ownerPrev = owner.getCredits() != null ? owner.getCredits() : 0;
+                    owner.setCredits(Math.max(0, ownerPrev - 1));
+                    userRepository.save(owner);
+                }
+
                 success++;
             } catch (Exception e) {
                 log.error("starAll: Không thể star {}: {}", repo.getFullName(), e.getMessage());
@@ -179,6 +232,17 @@ public class RepoService {
             try {
                 githubService.unstarRepo(repo.getOwner(), repo.getName(), currentUser.getAccessToken());
                 starRecordRepository.delete(record);
+
+                // Tit-for-Tat: hoàn trả +1 credit cho owner
+                Optional<User> ownerOpt = repo.getOwner() != null
+                        ? userRepository.findByLogin(repo.getOwner()) : Optional.empty();
+                if (ownerOpt.isPresent()) {
+                    User owner = ownerOpt.get();
+                    int ownerPrev = owner.getCredits() != null ? owner.getCredits() : 0;
+                    owner.setCredits(ownerPrev + 1);
+                    userRepository.save(owner);
+                }
+
                 success++;
             } catch (Exception e) {
                 log.error("unstarAll: Không thể unstar {}: {}", repo.getFullName(), e.getMessage());
@@ -253,7 +317,17 @@ public class RepoService {
 
         boolean canStar = !starred;
         if (canStar && repo.getOwner() != null && currentUser != null) {
+            // Không cho star repo của chính mình
             canStar = !repo.getOwner().equalsIgnoreCase(currentUser.getLogin());
+        }
+        // Tit-for-Tat: kiểm tra credit owner (nếu owner có trong hệ thống)
+        if (canStar && repo.getOwner() != null) {
+            Optional<User> ownerOpt = userRepository.findByLogin(repo.getOwner());
+            if (ownerOpt.isPresent()) {
+                int ownerCredits = ownerOpt.get().getCredits() != null ? ownerOpt.get().getCredits() : 0;
+                canStar = ownerCredits > 0;
+            }
+            // Owner không có trong hệ thống → cho star tự do (Phương án A)
         }
 
         return RepoDto.builder()
